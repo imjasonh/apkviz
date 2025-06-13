@@ -2,7 +2,9 @@ export class DataFetcher {
     async fetchAPKIndex(): Promise<string> {
         try {
             // Try to fetch from pre-downloaded file first
-            const response = await fetch('/APKINDEX');
+            // In production (GitHub Pages), we need to use the base path
+            const basePath = window.location.pathname.includes('/apkviz/') ? '/apkviz' : '';
+            const response = await fetch(`${basePath}/APKINDEX`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch APKINDEX: ${response.statusText}`);
             }
