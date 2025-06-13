@@ -16,6 +16,7 @@ export class DependencyVisualizer {
     private reverseDependencies: Map<string, Set<string>> = new Map();
     private parser: APKIndexParser;
     private onPackageSelect: (pkg: Package) => void;
+    private tooltip!: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>;
 
     constructor(containerId: string, onPackageSelect: (pkg: Package) => void) {
         this.parser = new APKIndexParser();
@@ -44,6 +45,11 @@ export class DependencyVisualizer {
 
         this.svg.call(zoom);
         this.svg.append('g');
+        
+        // Create tooltip once
+        this.tooltip = d3.select('body').append('div')
+            .attr('class', 'tooltip')
+            .style('opacity', 0);
     }
 
     setPackages(packages: Package[]) {
@@ -332,6 +338,9 @@ export class DependencyVisualizer {
             .attr('fill', (d, i) => d3.schemeCategory10[i % 10])
             .on('click', (event, d) => {
                 event.stopPropagation();
+                // Hide tooltip immediately on click
+                this.tooltip.style('opacity', 0);
+                
                 // Re-center visualization on clicked node
                 const showTransitive = (document.getElementById('show-transitive') as HTMLInputElement)?.checked ?? true;
                 this.visualizePackage(d.name, 2, showTransitive);
@@ -353,18 +362,20 @@ export class DependencyVisualizer {
             .attr('text-anchor', 'middle')
             .style('font-size', '12px');
 
-        // Add tooltip
-        const tooltip = d3.select('body').append('div')
-            .attr('class', 'tooltip');
-
+        // Add tooltip handlers
         node.on('mouseover', (event, d) => {
-            tooltip.transition().duration(200).style('opacity', .9);
-            tooltip.html(`<strong>${d.name}</strong><br/>Version: ${d.version}<br/>Size: ${(d.size / 1024).toFixed(2)} KB`)
+            this.tooltip.transition().duration(200).style('opacity', .9);
+            this.tooltip.html(`<strong>${d.name}</strong><br/>Version: ${d.version}<br/>Size: ${(d.size / 1024).toFixed(2)} KB`)
                 .style('left', (event.pageX + 10) + 'px')
                 .style('top', (event.pageY - 28) + 'px');
         })
         .on('mouseout', () => {
-            tooltip.transition().duration(500).style('opacity', 0);
+            this.tooltip.transition().duration(200).style('opacity', 0);
+        })
+        .on('mousemove', (event) => {
+            this.tooltip
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 28) + 'px');
         });
 
         // Update positions on tick

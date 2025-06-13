@@ -180,7 +180,8 @@ marker#arrow {
     border-radius: 4px;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.2s;
+    z-index: 1000;
 }
 
 /* Stats Panel Styles */
