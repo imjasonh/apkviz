@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+npm-debug.log*
+
+# Playwright test outputs
+playwright-output/
+debug-output/
+
+# Test artifacts
+*.png
+debug-logs.txt
+debug.png
+after-*.png
+click-nav-*.png
+nav-*.png
+stats-*.png
+search-result.png
+glibc-deps.png
+demo-*.png
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local

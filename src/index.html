@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APK Dependency Visualizer - Wolfi</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Wolfi APK Dependency Visualizer</h1>
+            <div class="controls">
+                <input type="text" id="search" placeholder="Search packages..." />
+                <button id="refresh">Refresh Data</button>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-transitive" checked />
+                    Show transitive dependencies
+                </label>
+                <button id="show-top-packages" class="special-button">🏆 Show Most Critical</button>
+            </div>
+        </header>
+        <main>
+            <div id="loading" class="loading">Loading package data...</div>
+            <div id="visualization"></div>
+            <div id="details" class="details hidden">
+                <h2>Package Details</h2>
+                <div id="package-info"></div>
+                <div id="package-stats" class="stats-panel"></div>
+            </div>
+        </main>
+        
+        <!-- Modal for showing critical packages -->
+        <div id="critical-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>🏆 Most Critical Packages in Wolfi</h2>
+                <div id="critical-packages"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
