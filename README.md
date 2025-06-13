@@ -124,6 +124,18 @@ Contributions are welcome! The codebase is well-structured for adding new featur
 2. Visualization enhancements in `src/visualization.ts`
 3. New UI features in `src/index.ts` and `src/index.html`
 
+### Pull Request Previews
+
+Every pull request automatically gets a preview deployment! When you open a PR:
+
+1. GitHub Actions builds your changes
+2. Deploys to `https://imjasonh.github.io/apkviz/pr-{number}/`
+3. Comments on your PR with the preview link
+4. Updates the preview when you push new commits
+5. Cleans up the preview when the PR is closed
+
+This makes it easy to test changes and share them for review before merging.
+
 ## Future Enhancements
 
 - Security vulnerability tracking

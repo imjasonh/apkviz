@@ -1,0 +1,142 @@
+name: Deploy PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  build-and-deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build project with PR base path
+        run: |
+          # Modify webpack config for PR preview path
+          export PR_PATH="/apkviz/pr-${{ github.event.pull_request.number }}"
+          echo "Building with base path: $PR_PATH"
+          
+          # Create a temporary webpack config for PR builds
+          cat > webpack.config.pr.js << 'EOF'
+          const baseConfig = require('./webpack.config.js');
+          module.exports = (env, argv) => {
+            const config = baseConfig(env, argv);
+            config.output.publicPath = process.env.PR_PATH + '/';
+            return config;
+          };
+          EOF
+          
+          # Build with PR config
+          npx webpack --config webpack.config.pr.js --mode production
+        
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          
+      - name: Create PR preview directory
+        run: |
+          mkdir -p gh-pages/pr-${{ github.event.pull_request.number }}
+          rm -rf gh-pages/pr-${{ github.event.pull_request.number }}/*
+          cp -r dist/* gh-pages/pr-${{ github.event.pull_request.number }}/
+          
+      - name: Update PR preview index
+        run: |
+          # Create an index of all PR previews
+          cd gh-pages
+          cat > pr-previews.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>APKViz PR Previews</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }
+                  h1 { color: #333; }
+                  ul { list-style: none; padding: 0; }
+                  li { margin: 10px 0; }
+                  a { color: #3498db; text-decoration: none; padding: 10px; display: inline-block; }
+                  a:hover { text-decoration: underline; }
+              </style>
+          </head>
+          <body>
+              <h1>APKViz PR Previews</h1>
+              <ul>
+          EOF
+          
+          # Add links for each PR directory
+          for dir in pr-*/; do
+            if [ -d "$dir" ]; then
+              pr_num=${dir#pr-}
+              pr_num=${pr_num%/}
+              echo "        <li><a href=\"./$dir\">PR #$pr_num</a></li>" >> pr-previews.html
+            fi
+          done
+          
+          echo "      </ul></body></html>" >> pr-previews.html
+          
+      - name: Deploy to GitHub Pages
+        run: |
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "Deploy PR preview for #${{ github.event.pull_request.number }}"
+          git push
+          
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const previewUrl = `https://imjasonh.github.io/apkviz/pr-${prNumber}/`;
+            
+            // Check if we already commented
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Preview deployment ready!')
+            );
+            
+            const body = `🚀 **Preview deployment ready!**\n\n` +
+              `View your changes at: ${previewUrl}\n\n` +
+              `This preview will be updated automatically when you push new commits.`;
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body
+              });
+            }

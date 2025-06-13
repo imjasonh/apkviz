@@ -1,0 +1,48 @@
+name: Initialize gh-pages branch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  init-gh-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        
+      - name: Create and push gh-pages branch
+        run: |
+          git checkout --orphan gh-pages
+          git rm -rf .
+          echo "GitHub Pages branch for APKViz" > README.md
+          
+          # Create initial pr-previews.html
+          cat > pr-previews.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>APKViz PR Previews</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }
+                  h1 { color: #333; }
+                  p { color: #666; }
+              </style>
+          </head>
+          <body>
+              <h1>APKViz PR Previews</h1>
+              <p>No PR previews available yet.</p>
+              <p><a href="/apkviz/">Go to main site</a></p>
+          </body>
+          </html>
+          EOF
+          
+          git add README.md pr-previews.html
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Initialize gh-pages branch"
+          git push origin gh-pages

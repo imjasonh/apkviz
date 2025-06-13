@@ -1,0 +1,64 @@
+name: Cleanup PR Preview
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          
+      - name: Remove PR preview
+        run: |
+          PR_DIR="pr-${{ github.event.pull_request.number }}"
+          if [ -d "$PR_DIR" ]; then
+            rm -rf "$PR_DIR"
+            
+            # Update the PR previews index
+            cat > pr-previews.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>APKViz PR Previews</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }
+                  h1 { color: #333; }
+                  ul { list-style: none; padding: 0; }
+                  li { margin: 10px 0; }
+                  a { color: #3498db; text-decoration: none; padding: 10px; display: inline-block; }
+                  a:hover { text-decoration: underline; }
+                  .closed { color: #999; text-decoration: line-through; }
+              </style>
+          </head>
+          <body>
+              <h1>APKViz PR Previews</h1>
+              <ul>
+          EOF
+            
+            # Add links for remaining PR directories
+            for dir in pr-*/; do
+              if [ -d "$dir" ]; then
+                pr_num=${dir#pr-}
+                pr_num=${pr_num%/}
+                echo "        <li><a href=\"./$dir\">PR #$pr_num</a></li>" >> pr-previews.html
+              fi
+            done
+            
+            echo "      </ul></body></html>" >> pr-previews.html
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}"
+            git push
+          fi
