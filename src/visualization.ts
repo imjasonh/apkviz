@@ -349,6 +349,9 @@ export class DependencyVisualizer {
                 const searchInput = document.getElementById('search') as HTMLInputElement;
                 if (searchInput) searchInput.value = d.name;
                 
+                // Update URL hash for permalinking
+                window.location.hash = d.name;
+                
                 // Also show package details
                 const pkg = this.packages.find(p => p.name === d.name);
                 if (pkg) this.onPackageSelect(pkg);

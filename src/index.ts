@@ -39,7 +39,7 @@ class App {
             // Re-visualize current package with new setting
             const query = searchInput.value;
             if (query) {
-                this.handleSearch(query);
+                this.handleSearch(query, false); // Don't update URL on toggle
             }
         });
         
@@ -59,6 +59,11 @@ class App {
                 if (modal) modal.classList.add('hidden');
             });
         }
+        
+        // Handle browser back/forward navigation
+        window.addEventListener('hashchange', () => {
+            this.handleHashChange();
+        });
     }
 
     private async loadData() {
@@ -77,11 +82,20 @@ class App {
             this.analyzer = new DependencyAnalyzer(this.packages);
             this.visualizer.setPackages(this.packages);
             
-            // Visualize a popular package by default
-            const defaultPackage = this.packages.find(p => p.name === 'busybox') || this.packages[0];
-            if (defaultPackage) {
-                const showTransitive = (document.getElementById('show-transitive') as HTMLInputElement).checked;
-                this.visualizer.visualizePackage(defaultPackage.name, 2, showTransitive);
+            // Check if there's a package in the URL hash
+            const hashPackage = window.location.hash.slice(1);
+            if (hashPackage && this.packages.some(p => p.name === hashPackage)) {
+                // Load the package from URL
+                const searchInput = document.getElementById('search') as HTMLInputElement;
+                if (searchInput) searchInput.value = hashPackage;
+                this.handleSearch(hashPackage, false);
+            } else {
+                // Visualize a popular package by default
+                const defaultPackage = this.packages.find(p => p.name === 'busybox') || this.packages[0];
+                if (defaultPackage) {
+                    const showTransitive = (document.getElementById('show-transitive') as HTMLInputElement).checked;
+                    this.visualizer.visualizePackage(defaultPackage.name, 2, showTransitive);
+                }
             }
         } catch (error) {
             console.error('Failed to load data:', error);
@@ -91,7 +105,7 @@ class App {
         }
     }
 
-    private handleSearch(query: string) {
+    private handleSearch(query: string, updateUrl: boolean = true) {
         if (query.length < 2) return;
 
         const results = this.visualizer.search(query);
@@ -100,6 +114,11 @@ class App {
             const showTransitive = (document.getElementById('show-transitive') as HTMLInputElement).checked;
             this.visualizer.visualizePackage(results[0].name, 2, showTransitive);
             this.showPackageDetails(results[0]);
+            
+            // Update URL hash for permalinking
+            if (updateUrl) {
+                window.location.hash = results[0].name;
+            }
         }
     }
 
@@ -278,6 +297,18 @@ class App {
                 }
             });
         });
+    }
+    
+    private handleHashChange() {
+        // Only handle hash changes after data is loaded
+        if (!this.packages.length) return;
+        
+        const hashPackage = window.location.hash.slice(1);
+        if (hashPackage && this.packages.some(p => p.name === hashPackage)) {
+            const searchInput = document.getElementById('search') as HTMLInputElement;
+            if (searchInput) searchInput.value = hashPackage;
+            this.handleSearch(hashPackage, false);
+        }
     }
 }
 
